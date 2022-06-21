@@ -1,4 +1,5 @@
 from skyfield.api import load, wgs84
+from skyfield.framelib import itrs
 import numpy as np
 from datetime import timedelta
 import matplotlib.pyplot as plt
@@ -22,11 +23,15 @@ time_range = ts.utc(now.year, now.month, now.day, now.hour, \
 
 now_positions = []
 for sat in satellites:
-    now_positions.append(sat.at(ts.now()).position.km)
+    now_positions.append(sat.at(ts.now()).frame_xyz(itrs).km)
 
 positions = []
 for sat in satellites:
-    positions.append(sat.at(time_range).position.km)
+    length = 2 * np.pi / sat.model.no_kozai
+
+    time_range = ts.utc(now.year, now.month, now.day, now.hour, \
+        range(now.minute - int(length / 2), now.minute + int(length / 2), 1))
+    positions.append(sat.at(time_range).frame_xyz(itrs).km)
 
 tuple_positions = []
 for position in positions:
@@ -49,9 +54,9 @@ for sat_i, sat in enumerate(tuple_positions):
     # Checks if altitude is above 30 dgerees
     if alt.degrees > 30:
         # Plot line from Hoboken to satellte
-        ax.plot3D((now_positions[sat_i][0], hoboken.at(ts.now()).position.km[0]), \
-            (now_positions[sat_i][1], hoboken.at(ts.now()).position.km[1]), \
-            (now_positions[sat_i][2], hoboken.at(ts.now()).position.km[2]), color='green')
+        ax.plot3D((now_positions[sat_i][0], hoboken.at(ts.now()).frame_xyz(itrs).km[0]), \
+            (now_positions[sat_i][1], hoboken.at(ts.now()).frame_xyz(itrs).km[1]), \
+            (now_positions[sat_i][2], hoboken.at(ts.now()).frame_xyz(itrs).km[2]), color='green')
         # Plot satellites in view
         ax.scatter3D(now_positions[sat_i][0], now_positions[sat_i][1], \
             now_positions[sat_i][2], color='yellow')
@@ -65,8 +70,8 @@ for sat_i, sat in enumerate(tuple_positions):
         ax.plot3D(sat[0], sat[1], sat[2], 'red')
 
 # Plot Hoboken
-ax.scatter3D(hoboken.at(ts.now()).position.km[0], hoboken.at(ts.now()).position.km[1], \
-    hoboken.at(ts.now()).position.km[2], color='green')
+ax.scatter3D(hoboken.at(ts.now()).frame_xyz(itrs).km[0], hoboken.at(ts.now()).frame_xyz(itrs).km[1], \
+    hoboken.at(ts.now()).frame_xyz(itrs).km[2], color='green')
 # Plot Earth
 ax.plot_wireframe(X, Y, Z, rstride=1, cstride=1, color='black')
 plt.show()
@@ -74,7 +79,7 @@ plt.show()
 
 
 
-
+print(hoboken)
 
 
 
