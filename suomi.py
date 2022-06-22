@@ -6,14 +6,13 @@ from skyfield.framelib import itrs
 from mpl_toolkits import mplot3d
 from datetime import datetime
 from pytz import timezone
+from earth import Earth
 
 # Pulls TLEs from celestrak
 stations_url = 'http://celestrak.com/NORAD/elements/noaa.txt'
 satellites = load.tle_file(stations_url, reload=True)
 by_name = {sat.name: sat for sat in satellites}
 satellite = by_name['SUOMI NPP [+]']
-
-
 
 # The base object necessary to create and convert between
 # different time formats
@@ -47,14 +46,6 @@ for pos_i, pos in enumerate(positions):
 
     suomi[str(pos_i)] = {'lat': lat.degrees, 'lon': lon.degrees, 'el': dis.km}
 
-# Gerneates sphereical points to plot Earth
-theta, phi = np.linspace(0, 2 * np.pi, 13), np.linspace(0, np.pi, 7)
-THETA, PHI = np.meshgrid(theta, phi)
-R = 6378
-earth_x = R * np.sin(PHI) * np.cos(THETA)
-earth_y = R * np.sin(PHI) * np.sin(THETA)
-earth_z = R * np.cos(PHI)
-
 # GeographicPosition object of Hoboken
 hoboken = wgs84.latlon(40.745255, -74.034775)
 hob_x, hob_y, hob_z = hoboken.itrs_xyz.km
@@ -69,7 +60,8 @@ ax.plot3D(xyz_pos[0], xyz_pos[1], xyz_pos[2], 'red')
 ax.scatter3D(hob_x, hob_y, hob_z, color='green')
 
 # Plots Earth
-ax.plot_wireframe(earth_x, earth_y, earth_z, rstride=1, \
+earth = Earth()
+ax.plot_wireframe(earth.x, earth.y, earth.z, rstride=1, \
     cstride=1, color='black')
 plt.show()
 
