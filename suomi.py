@@ -1,11 +1,13 @@
+from datetime import datetime
 import json
 import numpy as np
+from pytz import timezone
+
 import matplotlib.pyplot as plt
+from mpl_toolkits import mplot3d
 from skyfield.api import load, wgs84
 from skyfield.framelib import itrs
-from mpl_toolkits import mplot3d
-from datetime import datetime
-from pytz import timezone
+
 from earth import Earth
 
 # Pulls TLEs from celestrak
@@ -39,12 +41,14 @@ xyz_pos = positions.frame_xyz(itrs).km
 
 # Generates a dictionary containing latitude, longitiude, and elevation at each timestep
 suomi = {}
+dis_avg = 0
 for pos_i, pos in enumerate(positions):
     lat = wgs84.geographic_position_of(pos).latitude
     lon = wgs84.geographic_position_of(pos).longitude
     dis = wgs84.geographic_position_of(pos).elevation
 
     suomi[str(pos_i)] = {'lat': lat.degrees, 'lon': lon.degrees, 'el': dis.km}
+    dis_avg += dis.km
 
 # GeographicPosition object of Hoboken
 hoboken = wgs84.latlon(40.745255, -74.034775)

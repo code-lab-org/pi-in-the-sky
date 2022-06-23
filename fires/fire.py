@@ -1,8 +1,9 @@
 import csv
+from datetime import datetime
 import numpy as np
+
 from skyfield.api import load, wgs84
 from skyfield.framelib import itrs
-from datetime import datetime
 
 
 # Fire object that holds an id, geocetnricPosition, brightness, \
@@ -48,7 +49,8 @@ def parse_rand_fires(columns=[0, 1, 2, 3, 6, 7]):
         return fires
 
 
-#
+# Takes an input for which dataset to use, and returns a list of Fire
+# objects for the data
 def getFires(str):
     if str == 'real':
         fires = parse_real_fires()
