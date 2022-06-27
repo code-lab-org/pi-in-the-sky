@@ -15,5 +15,5 @@ client.loop_start()
 while True:
     now = datetime.now().isoformat()
     print(f"publishing: {now}")
-    client.publish("time", datetime.now().isoformat())
+    client.publish("time", now)
     time.sleep(1)
