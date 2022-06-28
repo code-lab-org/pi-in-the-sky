@@ -1,6 +1,7 @@
 import csv
 from datetime import datetime
 import numpy as np
+import json
 
 from skyfield.api import load, wgs84
 from skyfield.framelib import itrs
@@ -21,7 +22,7 @@ class Fire:
 
 # Pulls only the necessary columns from real fire csv
 def parse_real_fires(columns=[0, 2, 3, 4, 7, 8]):
-    with open('fires/new10kstart.csv', 'r') as csv_file:
+    with open('new10kstart.csv', 'r') as csv_file:
         reader = csv.reader(csv_file)
 
         fires = []
@@ -36,7 +37,7 @@ def parse_real_fires(columns=[0, 2, 3, 4, 7, 8]):
 
 # Pulls only the necessary columns from fake fire csv
 def parse_rand_fires(columns=[0, 1, 2, 3, 6, 7]):
-    with open('fires/random_global_fires.csv', 'r') as csv_file:
+    with open('random_global_fires.csv', 'r') as csv_file:
         reader = csv.reader(csv_file)
 
         fires = []
@@ -65,3 +66,19 @@ def getFires(str):
             fire[4], fire[5]))
 
     return fire_obs
+
+
+def create_geojson(fires):
+    fires_geojson = {"type": "Feature", \
+                    "geometry": {
+                        "type": "MultiPoint",
+                        "coordinates": []}
+                    }
+    for fire in fires:
+        fires_geojson['geometry']['coordinates'].append([float(fire[1]), float(fire[2])])
+
+    with open('real_fires.geojson', 'w') as i:
+        json.dump(fires_geojson, i)
+
+
+create_geojson(parse_real_fires())
