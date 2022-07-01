@@ -2,49 +2,59 @@ import csv
 from datetime import datetime
 import numpy as np
 import json
+import os
 
-from skyfield.api import load, wgs84
+from skyfield.api import load, wgs84, utc
 from skyfield.framelib import itrs
 
 
 # Fire object that holds an id, geocetnricPosition, brightness, \
 # and UTC Time object of detection
 class Fire:
-    def __init__(self, id, lat, lon, bright, date, time):
+    def __init__(self, id, lat, lon, bright, date_time):
         self.id = id
         self.pos = wgs84.latlon(float(lat), float(lon))
         self.brightness = float(bright)
-        mth, dy, yr = date.split('/')
-        hr = int(time[:len(time)-2])
-        min = int(time[len(time)-2:])
-        self.det_time = load.timescale().utc(int(yr), int(mth), int(dy), hr, min)
+        self.det_time = date_time
 
 
 # Pulls only the necessary columns from real fire csv
-def parse_real_fires(columns=[0, 2, 3, 4, 7, 8]):
-    with open('new10kstart.csv', 'r') as csv_file:
+def parse_real_fires(columns=[0, 2, 3, 4, 7]):
+    with open(f'{os.path.dirname(__file__)}/new10kstart.csv', 'r') as csv_file:
         reader = csv.reader(csv_file)
 
         fires = []
         for row in reader:
             fire = []
             for col in columns:
-                fire.append(row[col])
+                if col == 7:
+                    mth, dy, yr = row[col].split('/')
+                    hr = int(row[8][:len(row[8])-2])
+                    min = int(row[8][len(row[8])-2:])
+                    fire.append(datetime(int(yr), int(mth), int(dy), hr, min, tzinfo=utc))
+                else:
+                    fire.append(row[col])
             fires.append(fire)
 
         return fires
 
 
 # Pulls only the necessary columns from fake fire csv
-def parse_rand_fires(columns=[0, 1, 2, 3, 6, 7]):
-    with open('random_global_fires.csv', 'r') as csv_file:
+def parse_rand_fires(columns=[0, 1, 2, 3, 6]):
+    with open(f'{os.path.dirname(__file__)}/random_global_fires.csv', 'r') as csv_file:
         reader = csv.reader(csv_file)
 
         fires = []
         for row in reader:
             fire = []
             for col in columns:
-                fire.append(row[col])
+                if col == 6:
+                    mth, dy, yr = row[col].split('/')
+                    hr = int(row[7][:len(row[7])-2])
+                    min = int(row[7][len(row[7])-2:])
+                    fire.append(datetime(int(yr), int(mth), int(dy), hr, min, tzinfo=utc))
+                else:
+                    fire.append(row[col])
             fires.append(fire)
 
         return fires
@@ -52,33 +62,32 @@ def parse_rand_fires(columns=[0, 1, 2, 3, 6, 7]):
 
 # Takes an input for which dataset to use, and returns a list of Fire
 # objects for the data
-def getFires(str):
+def get_fires(str):
+    assert str == "real" or "random"
     if str == 'real':
         fires = parse_real_fires()
-    elif str == 'fake':
-        fires = parse_rand_fires()
     else:
-        print("invalid")
+        fires = parse_rand_fires()
 
     fire_obs = []
     for fire in fires:
         fire_obs.append(Fire(fire[0], fire[1], fire[2], fire[3] , \
-            fire[4], fire[5]))
+            fire[4]))
 
     return fire_obs
 
 
 def create_geojson(fires):
+    assert fires == "real" or "random"
+
     fires_geojson = {"type": "Feature", \
                     "geometry": {
                         "type": "MultiPoint",
                         "coordinates": []}
                     }
+
     for fire in fires:
         fires_geojson['geometry']['coordinates'].append([float(fire[1]), float(fire[2])])
 
-    with open('real_fires.geojson', 'w') as i:
+    with open(f'{fires}_fires.geojson', 'w') as i:
         json.dump(fires_geojson, i)
-
-
-create_geojson(parse_real_fires())
