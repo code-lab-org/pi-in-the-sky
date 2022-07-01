@@ -7,10 +7,10 @@ from skyfield.api import load, wgs84
 from skyfield.framelib import itrs
 
 from earth import Earth
-from fires.fire import Fire, getFires
+from fires.fire import Fire, get_fires
 
 
-Fires = getFires('fake')
+Fires = get_fires('fake')
 ts = load.timescale()
 f = open('suomi.json')
 satellite = json.load(f)
@@ -31,6 +31,7 @@ epsilon_deg = epsilon_rad * 180 / np.pi
 fig = plt.figure()
 ax = plt.axes(projection='3d')
 
+print(positions)
 for fire in Fires:
     for sat_i, sat in enumerate(positions):
         # Find relative position of sat to Hoboken, calculate altitude, azimuth, and distance
