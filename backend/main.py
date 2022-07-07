@@ -32,41 +32,42 @@ client.loop_start()
 
 start_time = datetime(2020, 1, 1, 7, 0, tzinfo=utc)
 sim_time = 0
-delta_time = 60
+delta_time = 30
 old_fires = ''
 active_fires = []
 detected_fires = []
 avg_det_time = 0
+
 all_fires = get_fires('random')
 
+start = datetime.now()
 while True:
     now = datetime.now().isoformat()
     curr_time = start_time + timedelta(seconds=sim_time)
 
     sat_pos = wgs84.geographic_position_of(satellite.at(ts.from_datetime(curr_time)))
 
-    new_fires = ''
     for fire in all_fires:
-        if fire.det_time > curr_time or str(fire.pos) in detected_fires:
+        if fire.det_time > curr_time or fire in detected_fires:
             continue
         if fire.det_time <= curr_time and fire not in active_fires:
             active_fires.append(fire)
         if detect(sat_pos.at(ts.from_datetime(curr_time)), fire.pos.at(ts.from_datetime(curr_time))) and fire not in detected_fires:
-            detected_fires.append(str(fire.pos))
+            detected_fires.append(fire)
             avg_det_time += (curr_time - fire.det_time).total_seconds()
-            new_fires += (str(fire.pos) + '\n')
 
-
-    print(f"publishing: {curr_time} \n {sat_pos} \n {new_fires} \n {[len(active_fires), len(detected_fires)]}")
+    print(f"publishing: {curr_time} \n {sat_pos} \n {[len(active_fires), len(detected_fires)]}")
     client.publish("time", curr_time.isoformat())
     client.publish("position", str(sat_pos))
     client.publish("active_fires", str([len(active_fires), len(detected_fires)]))
     # time.sleep(0.5)
-    sim_time += 30
+    sim_time += delta_time
 
     if len(detected_fires) == len(all_fires):
+        end = datetime.now()
         print("All fires detected.")
-        print(f"The average time to detect fire was {avg_det_time / (60 * len(detected_fires))} minutes.")
-        client.publish("position", f"The average time to detect a fire was {avg_det_time / (60 * len(detected_fires))} minutes.")
+        print(f"The average time to detect a fire was {avg_det_time / (60 * len(detected_fires))} minutes. The simulation took {(end - start).total_seconds()} seconds to run with a {delta_time} second timestep.")
+        client.publish("position", f"The average time to detect a fire was {avg_det_time / (60 * len(detected_fires))} minutes. The simulation took {(end - start).total_seconds()} seconds to run with a {delta_time} second timestep.")
+
         time.sleep(1)
         break
