@@ -31,19 +31,20 @@ client.connect("localhost", 1883)
 client.loop_start()
 
 start_time = datetime(2020, 1, 1, 7, 0, tzinfo=utc)
-sim_time = 0
-delta_time = 30
-old_fires = ''
+pub_frequency = 0.1 # How often the sim should loop in seconds
+delta_time_sim = 60 # Seconds the simulation advances every loop
 active_fires = []
 detected_fires = []
 avg_det_time = 0
 
 all_fires = get_fires('random')
 
+curr_time = start_time
+pub_time = datetime.now().replace(microsecond=0) + timedelta(seconds=pub_frequency)
 start = datetime.now()
+
 while True:
-    now = datetime.now().isoformat()
-    curr_time = start_time + timedelta(seconds=sim_time)
+    loop_begin = datetime.now()
 
     sat_pos = wgs84.geographic_position_of(satellite.at(ts.from_datetime(curr_time)))
 
@@ -60,13 +61,19 @@ while True:
     client.publish("time", curr_time.isoformat())
     client.publish("position", str(sat_pos))
     client.publish("active_fires", str([len(active_fires), len(detected_fires)]))
-    # time.sleep(0.5)
-    sim_time += delta_time
+
+    loop_end = datetime.now()
+
+    if pub_frequency >= (loop_end - loop_begin).total_seconds():
+        time.sleep(pub_frequency - (loop_end - loop_begin).total_seconds())
+
+    curr_time += timedelta(seconds=delta_time_sim)
+    pub_time += timedelta(seconds=pub_frequency)
 
     if len(detected_fires) == len(all_fires):
         end = datetime.now()
         print("All fires detected.")
-        print(f"The average time to detect a fire was {avg_det_time / (60 * len(detected_fires))} minutes. The simulation took {(end - start).total_seconds()} seconds to run with a {delta_time} second timestep.")
+        print(f"The average time to detect a fire was {avg_det_time / (60 * len(detected_fires))} minutes. The simulation took {(end - start).total_seconds()} seconds to run with a {delta_time_sim} second timestep.")
         client.publish("position", f"The average time to detect a fire was {avg_det_time / (60 * len(detected_fires))} minutes. The simulation took {(end - start).total_seconds()} seconds to run with a {delta_time} second timestep.")
 
         time.sleep(1)
