@@ -25,6 +25,12 @@ client.connect({
         alert("Error subscribing to topic.");
       }
     });
+    client.subscribe("detected_fires", {
+      "onFailure": function(e) {
+        console.log(e);
+        alert("Error subscribing to topic.");
+      }
+    });
   }
 });
 
@@ -37,5 +43,8 @@ client.onMessageArrived = function(message) {
   }
   if(message.destinationName == "active_fires") {
     $("#active_fires").text(message.payloadString);
+  }
+  if(message.destinationName == "detected_fires") {
+    $("#detected_fires").text(message.payloadString);
   }
 };

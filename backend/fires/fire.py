@@ -78,7 +78,6 @@ def get_fires(str):
 
 
 def create_geojson(fires):
-    assert fires == "real" or "random"
 
     fires_geojson = {"type": "Feature", \
                     "geometry": {
@@ -89,5 +88,4 @@ def create_geojson(fires):
     for fire in fires:
         fires_geojson['geometry']['coordinates'].append([float(fire[1]), float(fire[2])])
 
-    with open(f'{fires}_fires.geojson', 'w') as i:
-        json.dump(fires_geojson, i)
+    return fires_geojson
