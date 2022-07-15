@@ -1,5 +1,5 @@
 
-var client = new Paho.MQTT.Client("localhost", 9001, "");
+var client = new Paho.MQTT.Client("pi-in-the-sky.code-lab.org", 9001, "");
 
 client.connect({
   "onFailure": function(e) {

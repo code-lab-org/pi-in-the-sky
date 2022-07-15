@@ -26,20 +26,20 @@ print(f'The most recent epoch is: \nUTC: {epoch.utc_datetime()} \n ET: {epoch.as
 client = mqtt.Client()
 client.on_connect = on_connect
 
-client.connect("localhost", 1883)
+client.connect("pi-in-the-sky.code-lab.org", 1883)
 
 client.loop_start()
 
-start_time = datetime(2020, 1, 1, 7, 0, tzinfo=utc)
-pub_frequency = 0.1 # How often the sim should loop in seconds
-delta_time_sim = 60 # Seconds the simulation advances every loop
+pub_frequency = 1 # How often the sim should loop in seconds
+delta_time_sim = 30 # Seconds the simulation advances every loop
 active_fires = []
 detected_fires = []
 avg_det_time = 0
 
 all_fires = get_fires('random')
 
-curr_time = start_time
+curr_time = datetime.now().replace(microsecond=0, tzinfo=utc)
+curr_time = datetime(2020, 1, 1, 7, 0, tzinfo=utc)
 pub_time = datetime.now().replace(microsecond=0) + timedelta(seconds=pub_frequency)
 start = datetime.now()
 
@@ -57,15 +57,17 @@ while True:
             detected_fires.append(fire)
             avg_det_time += (curr_time - fire.det_time).total_seconds()
 
+    loop_end = datetime.now()
+
+    if pub_frequency >= (loop_end - loop_begin).total_seconds():
+            time.sleep(pub_frequency - (loop_end - loop_begin).total_seconds())
+
+
     print(f"publishing: {curr_time} \n {sat_pos} \n {[len(active_fires), len(detected_fires)]}")
     client.publish("time", curr_time.isoformat())
     client.publish("position", str(sat_pos))
     client.publish("active_fires", str([len(active_fires), len(detected_fires)]))
 
-    loop_end = datetime.now()
-
-    if pub_frequency >= (loop_end - loop_begin).total_seconds():
-        time.sleep(pub_frequency - (loop_end - loop_begin).total_seconds())
 
     curr_time += timedelta(seconds=delta_time_sim)
     pub_time += timedelta(seconds=pub_frequency)
