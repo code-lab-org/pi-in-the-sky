@@ -34,28 +34,22 @@ client.loop_start()
 
 print("Enter publish frequency (s): ")
 pub_frequency = input() # How often the sim should loop in seconds
-pub_frequency = int(pub_frequency)
+pub_frequency = float(pub_frequency)
 print("Enter simulation timestep (s): ")
 delta_time_sim = input() # Seconds the simulation advances every loop
-delta_time_sim = int(delta_time_sim)
+delta_time_sim = float(delta_time_sim)
+
+active_fires = []
 undetected_fires = []
-avg_det_time = 0
+detected_fires = []
 
-new_fires = get_fires('random')
-num_of_fires = len(new_fires)
+future_fires = get_fires('random')
+num_of_fires = len(future_fires)
 
-active_fires_json = {"type": "Feature", \
-                "geometry": {
-                    "type": "MultiPoint",
-                    "coordinates": []}
-                }
-detected_fires_json = {"type": "Feature", \
-"geometry": {
-    "type": "MultiPoint",
-    "coordinates": []}
-}
+geojson = {"type": "point", \
+                "coordinates": []}
 
-curr_time = datetime.now().replace(microsecond=0, tzinfo=utc)
+# curr_time = datetime.now().replace(microsecond=0, tzinfo=utc)
 curr_time = datetime(2020, 1, 1, 7, 0, tzinfo=utc)
 pub_time = datetime.now().replace(microsecond=0) + timedelta(seconds=pub_frequency)
 start = datetime.now()
@@ -65,41 +59,48 @@ while True:
 
     sat_pos = wgs84.geographic_position_of(satellite.at(ts.from_datetime(curr_time)))
 
-    for fire in new_fires:
-        if fire.det_time < curr_time:
-            active_fires_json['geometry']['coordinates'].append([float(fire.pos.latitude.degrees), float(fire.pos.longitude.degrees)])
+    new_undetected_fires = []
+    for fire in future_fires:
+        if fire.det_time < curr_time and fire not in active_fires:
+            geo_fire = geojson.copy()
+            geo_fire["coordinates"] = [fire.pos.longitude.degrees, fire.pos.latitude.degrees]
+            new_undetected_fires.append(geo_fire)
+            active_fires.append(fire)
             undetected_fires.append(fire)
-            new_fires.remove(fire)
+            future_fires.remove(fire)
 
+    new_detected_fires = []
     for fire in undetected_fires:
         if detect(sat_pos.at(ts.from_datetime(curr_time)), fire.pos.at(ts.from_datetime(curr_time))):
-            detected_fires_json['geometry']['coordinates'].append([float(fire.pos.latitude.degrees), float(fire.pos.longitude.degrees)])
+            geo_fire = geojson.copy()
+            geo_fire["coordinates"] = [fire.pos.longitude.degrees, fire.pos.latitude.degrees]
+            new_detected_fires.append(geo_fire)
+            detected_fires.append(fire)
             undetected_fires.remove(fire)
-        # if fire.det_time > curr_time or fire in detected_fires:
-        #     continue
-        # elif fire.det_time <= curr_time and fire not in active_fires:
-        #     active_fires.append(fire)
-        # elif detect(sat_pos.at(ts.from_datetime(curr_time)), fire.pos.at(ts.from_datetime(curr_time))) and fire not in detected_fires:
-        #     detected_fires.append(fire)
-        #     avg_det_time += (curr_time - fire.det_time).total_seconds()
 
     loop_end = datetime.now()
 
     if pub_frequency >= (loop_end - loop_begin).total_seconds():
             time.sleep(pub_frequency - (loop_end - loop_begin).total_seconds())
 
-
-    print(f"publishing: {curr_time} \n {sat_pos} \n {str(active_fires_json)} \n {str(detected_fires_json)}")
+    print(f"time: {curr_time.isoformat()}")
     client.publish("time", curr_time.isoformat())
-    client.publish("position", str(sat_pos))
-    client.publish("active_fires", str(active_fires_json))
-    client.publish("detected_fires", str(detected_fires_json))
 
+    print(f"position: {str(sat_pos)}")
+    client.publish("position", str(sat_pos))
+
+    for geo_fire in new_undetected_fires:
+        print(f"active: {str(geo_fire)}")
+        client.publish("active_fires", str(geo_fire))
+
+    for geo_fire in new_detected_fires:
+        print(f"detected: {str(geo_fire)}")
+        client.publish("detected_fires", str(geo_fire))
 
     curr_time += timedelta(seconds=delta_time_sim)
     pub_time += timedelta(seconds=pub_frequency)
 
-    if len(detected_fires_json['geometry']['coordinates']) == num_of_fires:
+    if len(detected_fires) == num_of_fires:
         end = datetime.now()
         print(f"Speed: {(end - start).total_seconds()}")
 
