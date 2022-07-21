@@ -4,6 +4,7 @@ from venv import create
 import numpy as np
 from pytz import timezone
 import time
+import json
 
 import paho.mqtt.client as mqtt
 from skyfield.api import load, wgs84, utc
@@ -48,9 +49,13 @@ future_fires = get_fires('random')
 num_of_fires = len(future_fires)
 
 # Empty GeoJSON point
-geojson = {"type": "point", \
-                "coordinates": []}
-
+geojson = {
+    "type": "Feature",
+    "geometry": {
+        "type": "Point",
+        "coordinates": []
+    }
+}
 curr_time = datetime(2020, 1, 1, 7, 0, tzinfo=utc)
 pub_time = datetime.now().replace(microsecond=0) + timedelta(seconds=pub_frequency)
 start = datetime.now()
@@ -63,7 +68,7 @@ while True:
     # Get satellite position and convert it to GeoJSON
     sat_pos = wgs84.geographic_position_of(satellite.at(ts.from_datetime(curr_time)))
     geo_pos = geojson.copy()
-    geo_pos["coordinates"] = [sat_pos.longitude.degrees, sat_pos.latitude.degrees, sat_pos.elevation.m]
+    geo_pos["geometry"]["coordinates"] = [sat_pos.longitude.degrees, sat_pos.latitude.degrees, sat_pos.elevation.m]
 
     # Loop through fires that haven't started
     new_undetected_fires = []
@@ -72,7 +77,7 @@ while True:
         if fire.det_time < curr_time and fire not in active_fires:
             # Create GeoJSON point object of fire
             geo_fire = geojson.copy()
-            geo_fire["coordinates"] = [fire.pos.longitude.degrees, fire.pos.latitude.degrees]
+            geo_fire["geometry"]["coordinates"] = [fire.pos.longitude.degrees, fire.pos.latitude.degrees]
             # Adds GeoJSON to list of newly started fires
             new_undetected_fires.append(geo_fire)
             # Adds Fire object to list of active undetected fires
@@ -89,7 +94,7 @@ while True:
         if detect(sat_pos.at(ts.from_datetime(curr_time)), fire.pos.at(ts.from_datetime(curr_time))):
             # Create GeoJSON point object of fire
             geo_fire = geojson.copy()
-            geo_fire["coordinates"] = [fire.pos.longitude.degrees, fire.pos.latitude.degrees]
+            geo_fire["geometry"]["coordinates"] = [fire.pos.longitude.degrees, fire.pos.latitude.degrees]
             # Adds GeoJSON to list of newly detected fires
             new_detected_fires.append(geo_fire)
             # Adds Fire object to list of all detected fires
@@ -105,30 +110,31 @@ while True:
 
     # Print and publish the current time
     print(f"time: {curr_time.isoformat()}")
-    client.publish("time", curr_time.isoformat())
+    client.publish("pits/time", curr_time.isoformat())
 
     # Print and publish the satellite position
-    print(f"position: {str(geo_pos)}")
-    client.publish("position", str(geo_pos))
+    print(f"position: {geo_pos}")
+    client.publish("pits/position", payload=json.dumps(geo_pos))
 
     # Loop through the new active fires and print and publish them individually
     for geo_fire in new_undetected_fires:
         print(f"active: {str(geo_fire)}")
-        client.publish("active_fires", str(geo_fire))
+        client.publish("pits/active_fires", payload=json.dumps(geo_fire))
 
     # Loop through the new detected fires and print and publish them individually
     for geo_fire in new_detected_fires:
         print(f"detected: {str(geo_fire)}")
-        client.publish("detected_fires", str(geo_fire))
+        client.publish("pits/detected_fires", payload=json.dumps(geo_fire))
 
     # Increment simulation time and publish time
     curr_time += timedelta(seconds=delta_time_sim)
     pub_time += timedelta(seconds=pub_frequency)
 
-    # Checks if all fires have been detected and end the sim if they have
+    # Checks if all fires have been detected and end the sim if they have been
     if len(detected_fires) == num_of_fires:
         end = datetime.now()
         print(f"Speed: {(end - start).total_seconds()}")
+
         time.sleep(2)   
         break
 
