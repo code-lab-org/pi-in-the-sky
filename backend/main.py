@@ -19,7 +19,7 @@ def on_connect(client, userdata, flags, rc):
 
 ts = load.timescale()
 stations_url = 'http://celestrak.com/NORAD/elements/noaa.txt'
-satellites = load.tle_file(stations_url, reload=True)
+satellites = load.tle_file(stations_url, reload=False)
 by_name = {sat.name: sat for sat in satellites}
 satellite = by_name['SUOMI NPP [+]']
 epoch = satellite.epoch
@@ -67,19 +67,30 @@ while True:
 
     # Get satellite position and convert it to GeoJSON
     sat_pos = wgs84.geographic_position_of(satellite.at(ts.from_datetime(curr_time)))
-    geo_pos = geojson.copy()
-    geo_pos["geometry"]["coordinates"] = [sat_pos.longitude.degrees, sat_pos.latitude.degrees, sat_pos.elevation.m]
-
+    
+    geo_pos = {
+    "type": "Feature",
+    "geometry": {
+        "type": "Point",
+        "coordinates": [sat_pos.longitude.degrees, sat_pos.latitude.degrees, sat_pos.elevation.m]
+        }
+    }
     # Loop through fires that haven't started
     new_undetected_fires = []
     for fire in future_fires:
         # Check if fire should start this loop
         if fire.det_time < curr_time and fire not in active_fires:
             # Create GeoJSON point object of fire
-            geo_fire = geojson.copy()
-            geo_fire["geometry"]["coordinates"] = [fire.pos.longitude.degrees, fire.pos.latitude.degrees]
+            geo_fire = {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [fire.pos.longitude.degrees, fire.pos.latitude.degrees]
+                }
+            }
             # Adds GeoJSON to list of newly started fires
             new_undetected_fires.append(geo_fire)
+            print(new_undetected_fires)
             # Adds Fire object to list of active undetected fires
             undetected_fires.append(fire)
             # Adds Fire object to list of all active fires
@@ -93,8 +104,13 @@ while True:
         # Check if satellite detects fire
         if detect(sat_pos.at(ts.from_datetime(curr_time)), fire.pos.at(ts.from_datetime(curr_time))):
             # Create GeoJSON point object of fire
-            geo_fire = geojson.copy()
-            geo_fire["geometry"]["coordinates"] = [fire.pos.longitude.degrees, fire.pos.latitude.degrees]
+            geo_fire = {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [fire.pos.longitude.degrees, fire.pos.latitude.degrees]
+                }
+            }
             # Adds GeoJSON to list of newly detected fires
             new_detected_fires.append(geo_fire)
             # Adds Fire object to list of all detected fires
