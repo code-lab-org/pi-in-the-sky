@@ -7,25 +7,7 @@ client.connect({
     alert("Error connecting to broker.");
   },
   "onSuccess": function() {
-    client.subscribe("time", {
-      "onFailure": function(e) {
-        console.log(e);
-        alert("Error subscribing to topic.");
-      }
-    });
-    client.subscribe("position", {
-      "onFailure": function(e) {
-        console.log(e);
-        alert("Error subscribing to topic.");
-      }
-    });
-    client.subscribe("active_fires", {
-      "onFailure": function(e) {
-        console.log(e);
-        alert("Error subscribing to topic.");
-      }
-    });
-    client.subscribe("detected_fires", {
+    client.subscribe("pits/#", {
       "onFailure": function(e) {
         console.log(e);
         alert("Error subscribing to topic.");
@@ -35,16 +17,16 @@ client.connect({
 });
 
 client.onMessageArrived = function(message) {
-  if(message.destinationName == "time") {
+  if(message.destinationName == "pits/time") {
     $("#time").text(message.payloadString);
   }
-  if(message.destinationName == "position") {
+  if(message.destinationName == "pits/position") {
     $("#position").text(message.payloadString);
   }
-  if(message.destinationName == "active_fires") {
+  if(message.destinationName == "pits/active_fires") {
     $("#active_fires").text(message.payloadString);
   }
-  if(message.destinationName == "detected_fires") {
+  if(message.destinationName == "pits/detected_fires") {
     $("#detected_fires").text(message.payloadString);
   }
 };
