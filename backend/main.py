@@ -5,6 +5,7 @@ import numpy as np
 from pytz import timezone
 import time
 import json
+import sys
 
 import paho.mqtt.client as mqtt
 from skyfield.api import load, wgs84, utc
@@ -33,12 +34,8 @@ client.connect("pi-in-the-sky.code-lab.org", 1883)
 
 client.loop_start()
 
-print("Enter publish frequency (s): ")
-pub_frequency = input() # How often the sim should loop in seconds
-pub_frequency = float(pub_frequency)
-print("Enter simulation timestep (s): ")
-delta_time_sim = input() # Seconds the simulation advances every loop
-delta_time_sim = float(delta_time_sim)
+pub_frequency = float(sys.argv[1])
+delta_time_sim = float(sys.argv[2])
 
 active_fires = []
 undetected_fires = []
@@ -48,14 +45,6 @@ detected_fires = []
 future_fires = get_fires('random')
 num_of_fires = len(future_fires)
 
-# Empty GeoJSON point
-geojson = {
-    "type": "Feature",
-    "geometry": {
-        "type": "Point",
-        "coordinates": []
-    }
-}
 curr_time = datetime(2020, 1, 1, 7, 0, tzinfo=utc)
 pub_time = datetime.now().replace(microsecond=0) + timedelta(seconds=pub_frequency)
 start = datetime.now()
