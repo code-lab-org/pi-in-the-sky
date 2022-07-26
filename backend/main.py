@@ -56,14 +56,17 @@ while True:
 
     # Get satellite position and convert it to GeoJSON
     sat_pos = wgs84.geographic_position_of(satellite.at(ts.from_datetime(curr_time)))
-    
+    next_sat_pos = wgs84.geographic_position_of(satellite.at(ts.from_datetime(curr_time + timedelta(seconds=delta_time_sim))))
+
     geo_pos = {
     "type": "Feature",
     "geometry": {
-        "type": "Point",
-        "coordinates": [sat_pos.longitude.degrees, sat_pos.latitude.degrees, sat_pos.elevation.m]
+        "type": "lineString",
+        "coordinates": [[sat_pos.longitude.degrees, sat_pos.latitude.degrees, sat_pos.elevation.m], \
+                        [next_sat_pos.longitude.degrees, next_sat_pos.latitude.degrees, next_sat_pos.elevation.m]]
         }
     }
+
     # Loop through fires that haven't started
     new_undetected_fires = []
     for fire in future_fires:
