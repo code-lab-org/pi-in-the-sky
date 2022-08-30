@@ -31,7 +31,7 @@ def parse_real_fires(columns=[0, 2, 3, 4, 7]):
                     mth, dy, yr = row[col].split('/')
                     hr = int(row[8][:len(row[8])-2])
                     min = int(row[8][len(row[8])-2:])
-                    time_diff = timedelta(int(yr) - 2020, int(mth), int(dy), hr - 7, min)
+                    time_diff = timedelta(int(yr) - 2020, int(mth), int(dy), hr - 7, min - 30)
                     fire.append(time_diff)
                 else:
                     fire.append(row[col])
@@ -53,7 +53,7 @@ def parse_rand_fires(columns=[0, 1, 2, 3, 6]):
                     mth, dy, yr = row[col].split('/')
                     hr = int(row[7][:len(row[7])-2])
                     min = int(row[7][len(row[7])-2:])
-                    time_diff = timedelta(int(yr) - 2020, int(mth), int(dy), hr - 7, min)
+                    time_diff = timedelta(int(yr) - 2020, int(mth), int(dy), hr - 7, min - 30)
                     fire.append(time_diff)
                 else:
                     fire.append(row[col])
