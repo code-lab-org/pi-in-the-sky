@@ -37,18 +37,20 @@ def main():
 
     pub_frequency = float(sys.argv[1])
     delta_time_sim = float(sys.argv[2])
+    fire_dataset = str(sys.argv[3])
 
     active_fires = []
     undetected_fires = []
     detected_fires = []
 
     # Get dataset of Fire objects
-    future_fires = get_fires('random')
+    future_fires = get_fires(fire_dataset)
     num_of_fires = len(future_fires)
 
     # To determine calculation speed
     sim_start = datetime.now()
-    curr_time = datetime(2020, 1, 1, 7, 0, tzinfo=utc)
+    curr_time = datetime.now(tz=utc)
+    start_time = datetime.now(tz=utc)
     pub_time = datetime.now().replace(microsecond=0) + timedelta(seconds=pub_frequency)
 
 
@@ -62,34 +64,41 @@ def main():
         next_sat_pos = wgs84.geographic_position_of(satellite.at(ts.from_datetime(curr_time + timedelta(seconds=delta_time_sim))))
 
         geo_pos = {
-            "type": "FeatureCollection",
-            "features": [{
-                "type": "Feature",
-                "geometry": {
-                    "type": "Point",
-                    "coordinates": [sat_pos.longitude.degrees, sat_pos.latitude.degrees, sat_pos.elevation.m]
-                },
-                "properties": {
-                    "time": curr_time.isoformat()
-                }
-            }, {
-                "type": "Feature",
-                "geometry": {
-                    "type": "Point",
-                    "coordinates": [next_sat_pos.longitude.degrees, next_sat_pos.latitude.degrees, next_sat_pos.elevation.m]
-                },
-                "properties": {
-                    "time": (curr_time + timedelta(seconds=delta_time_sim)).isoformat()
-                }
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [sat_pos.longitude.degrees, sat_pos.latitude.degrees, sat_pos.elevation.m]
             }
-            ]
         }
+        # geo_pos = {
+        #     "type": "FeatureCollection",
+        #     "features": [{
+        #         "type": "Feature",
+        #         "geometry": {
+        #             "type": "Point",
+        #             "coordinates": [sat_pos.longitude.degrees, sat_pos.latitude.degrees, sat_pos.elevation.m]
+        #         },
+        #         "properties": {
+        #             "time": curr_time.isoformat()
+        #         }
+        #     }, {
+        #         "type": "Feature",
+        #         "geometry": {
+        #             "type": "Point",
+        #             "coordinates": [next_sat_pos.longitude.degrees, next_sat_pos.latitude.degrees, next_sat_pos.elevation.m]
+        #         },
+        #         "properties": {
+        #             "time": (curr_time + timedelta(seconds=delta_time_sim)).isoformat()
+        #         }
+        #     }
+        #     ]
+        # }
 
         # Loop through fires that haven't started
         new_undetected_fires = []
         for fire in future_fires:
             # Check if fire should start this loop
-            if fire.det_time < curr_time and fire not in active_fires:
+            if start_time + fire.det_time < curr_time and fire not in active_fires:
                 # Create GeoJSON point object of fire
                 geo_fire = {
                 "type": "Feature",
